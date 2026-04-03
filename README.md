@@ -24,7 +24,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Cấu hình môi trường
-Tạo file .env tại thư mục gốc và thêm API key của bạn (Lấy key tại Groq Cloud):
+Tạo file .env tại thư mục gốc và thêm API key (Lấy key tại Groq Cloud):
 ```bash
 GROQ_API_KEY=your_groq_api_key_here
 ```
