@@ -1,48 +1,23 @@
-🛡️ A2A-MIS: Malware Intelligence System
-Hệ thống phân tích mã độc thông minh sử dụng kiến trúc Multi-Agent (Analyst & Auditor) để tự động hóa quy trình phân tích và đối chiếu chính sách bảo mật nội bộ.
+# A2A-MIS: Malware Intelligence System (Analyst + Auditor)
 
-✨ Tính năng chính
-Analyst Node: Tự động thu thập thông tin mã độc từ Internet (OSINT).
+## Overview
 
-Auditor Node: Đối chiếu bản nháp với cơ sở dữ liệu quy trình nội bộ (RAG).
+This repository implements a **multi-agent** chatbot system for automated malware analysis and incident response (IR) advising. The system focuses on providing high-fidelity technical reports while ensuring compliance with organizational security policies.
 
-Reflection Loop: Cơ chế phản biện, Auditor yêu cầu Analyst sửa đổi nếu báo cáo thiếu quy trình kỹ thuật hoặc sai lệch chính sách.
+The system works in two stages:
 
-🏗️ Quy trình hoạt động
-Nhập liệu: Người dùng nhập tên mã độc (VD: WannaCry, AutoHacker).
+1. **AnalystAgent**: Provides a fast technical summary of the target malware using web search (**OSINT**) for up-to-date threat intelligence and behavioral data.
+2. **AuditorAgent**: Retrieves internal security protocols from a **vector store** (RAG), then validates and refines the report using a **reflection loop** to ensure the response adheres to internal IR standards (e.g., mandatory network isolation).
 
-Phân tích: Analyst tìm kiếm thông tin và viết bản nháp.
+---
 
-Kiểm duyệt: Auditor so khớp với dữ liệu nội bộ (malware_kb.txt).
+## Install & Running the System
 
-Phản hồi: Nếu chưa đạt, Auditor gửi feedback yêu cầu Analyst sửa lại.
+### 1. Install dependencies
 
-Hoàn tất: Xuất báo cáo Incident Response cuối cùng.
+**Requires:** Python 3.10+ (recommended Python 3.12).
 
-🛠️ Cài đặt & Chạy
-Clone dự án:
+**Run:**
 
-Bash
-git clone https://github.com/username/a2a-system.git
-cd a2a-system
-Cài đặt thư viện:
-
-Bash
+```bash
 pip install -r requirements.txt
-Cấu hình file .env:
-Tạo file .env và thêm API Key từ Groq Cloud:
-
-Đoạn mã
-GROQ_API_KEY=gsk_your_api_key_here
-Khởi chạy:
-
-Bash
-python src/main.py
-📚 Công nghệ sử dụng
-LLM: Llama-3.1-8b (via Groq)
-
-Orchestration: LangGraph, LangChain
-
-Vector DB: FAISS
-
-Embeddings: HuggingFace all-MiniLM-L6-v2
