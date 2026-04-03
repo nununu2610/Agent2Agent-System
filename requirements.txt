@@ -1,0 +1,6 @@
+langchain-google-genai
+langchain-community
+duckduckgo-search
+faiss-cpu
+langgraph
+python-dotenv
