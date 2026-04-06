@@ -13,17 +13,17 @@ from src.agents.auditor import auditor_node
 
 
 
-# def build_app():
-#     workflow = StateGraph(AgentState)
+def build_app():
+    workflow = StateGraph(AgentState)
     
-#     workflow.add_node("analyst", analyst_node)
-#     workflow.add_node("auditor", auditor_node)
+    workflow.add_node("analyst", analyst_node)
+    workflow.add_node("auditor", auditor_node)
     
-#     workflow.set_entry_point("analyst")
-#     workflow.add_edge("analyst", "auditor")
-#     workflow.add_edge("auditor", END)
+    workflow.set_entry_point("analyst")
+    workflow.add_edge("analyst", "auditor")
+    workflow.add_edge("auditor", END)
     
-#     return workflow.compile()
+    return workflow.compile()
 
 def should_continue(state: AgentState):
     # Debug: In ra để kiểm tra xem có feedback không
