@@ -72,13 +72,10 @@ if __name__ == "__main__":
         print(f"KHỞI ĐỘNG PHÂN TÍCH: {target.upper()}")
         print("═"*75)
         
-        # Biến để lưu giữ trạng thái cuối cùng sau khi thoát vòng lặp
         final_state = initial_state
 
-        # Vòng lặp Stream để hiện thị tiến trình
         for event in app.stream(initial_state):
             for agent_name, state_update in event.items():
-                # Cập nhật trạng thái mới nhất vào biến final_state
                 final_state.update(state_update)
                 
                 if agent_name == "analyst":
@@ -96,16 +93,14 @@ if __name__ == "__main__":
                     else:
                         print(" └── Kết quả: APPROVE (Báo cáo đã đạt chuẩn nội bộ).")
 
-        # --- PHẦN HIỂN THỊ KẾT QUẢ CUỐI CÙNG (Sau khi kết thúc luồng) ---
         print("\n" + "─" * 75)
         print("BÁO CÁO PHẢN ỨNG SỰ CỐ CHÍNH THỨC (FINAL REPORT)")
         print("─" * 75)
 
-        # Kiểm tra kỹ trong final_state thay vì state_update (biến tạm trong loop)
         if final_state.get("final_report"):
             print(final_state["final_report"])
         else:
-            print("⚠️ CẢNH BÁO: Hệ thống dừng do đạt giới hạn lặp (3 lần).")
+            print("CẢNH BÁO: Hệ thống dừng do đạt giới hạn lặp (3 lần).")
             print("-" * 30)
             print(f"Bản nháp cuối cùng chưa được duyệt:\n\n{final_state.get('draft_report')}")
             print("-" * 30)
