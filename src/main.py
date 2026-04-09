@@ -13,17 +13,17 @@ from src.agents.auditor import auditor_node
 
 
 
-def build_app():
-    workflow = StateGraph(AgentState)
+# def build_app():
+#     workflow = StateGraph(AgentState)
     
-    workflow.add_node("analyst", analyst_node)
-    workflow.add_node("auditor", auditor_node)
+#     workflow.add_node("analyst", analyst_node)
+#     workflow.add_node("auditor", auditor_node)
     
-    workflow.set_entry_point("analyst")
-    workflow.add_edge("analyst", "auditor")
-    workflow.add_edge("auditor", END)
+#     workflow.set_entry_point("analyst")
+#     workflow.add_edge("analyst", "auditor")
+#     workflow.add_edge("auditor", END)
     
-    return workflow.compile()
+#     return workflow.compile()
 
 def should_continue(state: AgentState):
     # Debug: In ra để kiểm tra xem có feedback không
@@ -66,35 +66,49 @@ if __name__ == "__main__":
         if target.lower() in ['exit', 'quit']: 
             break
             
-        initial_state = {"malware_name": target, "draft_report": "", "final_report": ""}
-        result = app.invoke(initial_state)
+        initial_state = {"malware_name": target, "draft_report": "", "final_report": "", "iterations": 0}
         
         print("\n" + "═"*75)
         print(f"KHỞI ĐỘNG PHÂN TÍCH: {target.upper()}")
         print("═"*75)
         
+        # Biến để lưu giữ trạng thái cuối cùng sau khi thoát vòng lặp
+        final_state = initial_state
+
+        # Vòng lặp Stream để hiện thị tiến trình
         for event in app.stream(initial_state):
             for agent_name, state_update in event.items():
+                # Cập nhật trạng thái mới nhất vào biến final_state
+                final_state.update(state_update)
                 
                 if agent_name == "analyst":
-                    print("\nTHU THẬP OSINT (AGENT: ANALYST)")
-                    print(" ├── Trạng thái: Đã cào dữ liệu từ Web.")
-                    snippet = state_update['draft_report'][:100].replace('\n', ' ')
-                    print(f" └── Trích xuất: \"{snippet}...\"")
+                    print(f"\n[BƯỚC 1] THU THẬP OSINT (AGENT: ANALYST)")
+                    print(" ├── Trạng thái: Đã truy xuất dữ liệu Web.")
+                    snippet = state_update.get('draft_report', '')[:100].replace('\n', ' ')
+                    print(f" └── Nội dung nháp: \"{snippet}...\"")
                     
                 elif agent_name == "auditor":
-                    print("\nKIỂM ĐỊNH RAG (AGENT: AUDITOR)")
-                    print(" ├── Trạng thái: Đã đối chiếu với Database nội bộ.")
-                    print(" └── Kết quả: Hoàn tất hợp nhất dữ liệu.")
-                    
+                    print(f"\n[BƯỚC 2] KIỂM ĐỊNH RAG (AGENT: AUDITOR)")
+                    fb = state_update.get('feedback', '')
+                    if fb:
+                        print(f" ├── Kết quả: REJECT (Phát hiện thiếu sót kỹ thuật).")
+                        print(f" └── Yêu cầu: {fb[:80]}...")
+                    else:
+                        print(" └── Kết quả: APPROVE (Báo cáo đã đạt chuẩn nội bộ).")
+
+        # --- PHẦN HIỂN THỊ KẾT QUẢ CUỐI CÙNG (Sau khi kết thúc luồng) ---
         print("\n" + "─" * 75)
-        print("BÁO CÁO PHẢN ỨNG SỰ CỐ (INCIDENT RESPONSE)")
+        print("BÁO CÁO PHẢN ỨNG SỰ CỐ CHÍNH THỨC (FINAL REPORT)")
         print("─" * 75)
 
-        if "final_report" in state_update and state_update["final_report"]:
-            print(state_update["final_report"])
+        # Kiểm tra kỹ trong final_state thay vì state_update (biến tạm trong loop)
+        if final_state.get("final_report"):
+            print(final_state["final_report"])
         else:
-            print("CẢNH BÁO: Hệ thống không thể thống nhất báo cáo sau 3 lần lặp.")
-            print(f"Lý do từ chối cuối cùng từ Auditor:\n{state_update.get('feedback', 'Không có phản hồi.')}")
+            print("⚠️ CẢNH BÁO: Hệ thống dừng do đạt giới hạn lặp (3 lần).")
+            print("-" * 30)
+            print(f"Bản nháp cuối cùng chưa được duyệt:\n\n{final_state.get('draft_report')}")
+            print("-" * 30)
+            print(f"Lý do Auditor chưa duyệt: {final_state.get('feedback')}")
             
-        print("═" * 75 + "\n")
+        print("\n" + "═" * 75 + "\n")

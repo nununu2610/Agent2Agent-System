@@ -28,7 +28,7 @@ def auditor_node(state: AgentState):
     BẢN NHÁP CỦA ANALYST: {draft}
 
     NHIỆM VỤ:
-    1. Kiểm tra bản nháp. Nếu THIẾU quy trình cụ thể từ 'DỮ LIỆU NỘI BỘ BẮT BUỘC' (ví dụ: rút cáp mạng, chặn IP pfSense) -> Ghi 'STATUS: REJECT'.
+    1. Kiểm tra bản nháp. Nếu THIẾU quy trình cụ thể từ 'DỮ LIỆU NỘI BỘ BẮT BUỘC' (ví dụ: rút cáp mạng,...) -> Ghi 'STATUS: REJECT'.
     2. Nếu ĐẠT: Ghi 'STATUS: APPROVE' và viết BÁO CÁO CHÍNH THỨC.
     
     YÊU CẦU BÁO CÁO:
