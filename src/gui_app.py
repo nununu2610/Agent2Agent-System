@@ -23,7 +23,6 @@ def extract_json_safe(text):
         match = re.search(r"(\{.*\})", text, re.DOTALL)
         if match:
             json_str = match.group(1)
-            # Sửa lỗi thiếu dấu phẩy phổ biến của AI
             json_str = re.sub(r'(")\s*\n\s*(")', r'\1,\n\2', json_str)
             return json.loads(json_str), None
         return None, text
@@ -65,7 +64,7 @@ def main():
                     st.write(f"**Round {it}:** Đang phân tích & kiểm duyệt...")
                     
                     state.update(analyst_node(state))
-                    time.sleep(2) # Chống Rate Limit
+                    time.sleep(2) 
                     state.update(auditor_node(state))
                     time.sleep(2)
                     judge_res = judge_node(state)
@@ -106,9 +105,28 @@ def main():
 
                 st.markdown("### Quy trình ứng phó (SOC Action Plan)")
                 steps = final.get("response_steps", [])
+                                
                 if isinstance(steps, list):
                     for i, s in enumerate(steps):
-                        st.markdown(f'<div class="step-box"><b>Bước {i+1}:</b> {s}</div>', unsafe_allow_html=True)
+                        if isinstance(s, dict):
+                            step_content = s.get('description', '')
+                            sub_details = s.get('steps', [])
+                            if isinstance(sub_details, list):
+                                step_content += " " + " ".join(sub_details)
+                        else:
+                            step_content = str(s)
+
+                        step_content = re.sub(r"^(Bước|Step)\s*\d+[:.-]*\s*", "", step_content, flags=re.IGNORECASE).strip()
+
+                        if step_content:
+                            st.markdown(f'''
+                                <div class="step-box">
+                                    <span style="color: #007bff; font-weight: bold;">GIAI ĐOẠN {i+1}:</span><br>
+                                    {step_content}
+                                </div>
+                            ''', unsafe_allow_html=True)
+                else:
+                    st.info("Không tìm thấy các bước ứng phó theo định dạng chuẩn.")
             else:
                 st.markdown(draft_text)
 
