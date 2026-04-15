@@ -1,55 +1,159 @@
 import os
+import json
 import re
 from langchain_groq import ChatGroq
-from src.tools.rag_engine import setup_rag
+from src.tools.rag_engine import load_db, query_rag
 from src.state import AgentState
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant", 
-    temperature=0.1,
+    model="llama-3.1-8b-instant",
+    temperature=0,
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-retriever = setup_rag()
+db = load_db()
 
-def auditor_node(state: AgentState):
-    malware = state.get("malware_name", "")
-    draft = state.get("draft_report", "")
+
+def clean_json(text):
+    text = re.sub(r"```json|```", "", text)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    return match.group(0) if match else text
+
+
+# ===== VALIDATION HELPERS =====
+def normalize_steps(steps):
+    clean = []
+
+    for s in steps:
+        if isinstance(s, dict):
+            # flatten dict
+            for v in s.values():
+                clean.append(str(v))
+        else:
+            clean.append(str(s))
+
+    return clean
+
+
+def has_duplicate_steps(steps):
+    steps = normalize_steps(steps)
+    return len(set([s.lower().strip() for s in steps])) != len(steps)
+
+
+def has_generic_steps(steps):
+    steps = normalize_steps(steps)
+
+    bad_keywords = [
+        "xóa", "quét", "antivirus",
+        "delete", "scan"
+    ]
+
+    for s in steps:
+        if any(k in s.lower() for k in bad_keywords):
+            return True
+    return False
+
+
+def is_invalid_content(report):
+    if not report:
+        return True
+
+    text = json.dumps(report).lower()
+    bad = ["parse error", "...", "n/a", "unknown"]
+
+    return any(b in text for b in bad)
+
+
+def auditor_node(state: AgentState, external_llm=None):
+    model = external_llm if external_llm else llm
+
+    malware = state["malware_name"]
+    draft = state["draft_report"]
     iterations = state.get("iterations", 0)
-    
-    internal_docs = retriever.invoke(f"Quy trình xử lý nội bộ cho {malware}")
-    context = "\n".join([d.page_content for d in internal_docs])
-    
-    print(f"\n[AUDITOR] Đang thẩm định bản nháp (Lần lặp: {iterations + 1})...")
+
+    # ===== RAG =====
+    docs = query_rag(db, malware, "mitigation")
+    context = "\n".join([d.page_content for d in docs]) if docs else ""
 
     prompt = f"""
-    BẠN LÀ KIỂM TOÁN VIÊN AN NINH MẠNG.
-    DỮ LIỆU NỘI BỘ BẮT BUỘC: {context}
-    BẢN NHÁP CỦA ANALYST: {draft}
+Bạn là Auditor an ninh mạng.
 
-    NHIỆM VỤ:
-    1. Kiểm tra bản nháp. Nếu THIẾU quy trình cụ thể từ 'DỮ LIỆU NỘI BỘ BẮT BUỘC' (ví dụ: rút cáp mạng,...) -> Ghi 'STATUS: REJECT'.
-    2. Nếu ĐẠT: Ghi 'STATUS: APPROVE' và viết BÁO CÁO CHÍNH THỨC.
-    
-    YÊU CẦU BÁO CÁO:
-    - Phải có mục riêng tên là 'QUY TRÌNH PHẢN ỨNG KHẨN CẤP'.
-    - Trong mục đó, phải trích dẫn NGUYÊN VĂN quy trình từ 'DỮ LIỆU NỘI BỘ BẮT BUỘC'.
-    - KHÔNG giải thích các bước kiểm tra của bạn. KHÔNG để lại các ký tự thừa như STATUS.
-    """
-    
-    res = llm.invoke(prompt).content
-    
-    if "STATUS: APPROVE" in res.upper():
-        clean_report = re.sub(r"\*?\*?STATUS:\s*APPROVE\*?\*?", "", res, flags=re.IGNORECASE).strip()
-        
-        return {
-            "final_report": clean_report, 
-            "feedback": "", 
-            "iterations": iterations + 1
+DRAFT REPORT:
+{draft}
+
+INTERNAL MITIGATION DATA:
+{context}
+
+YÊU CẦU:
+1. Báo cáo phải có:
+   - incident_summary hợp lý
+   - technical_analysis có nội dung thực
+   - ít nhất 2 bước mitigation từ dữ liệu nội bộ
+
+2. Nếu thiếu → REJECT
+3. Nếu đủ → APPROVE
+
+ KHÔNG được:
+- parse error
+- nội dung rỗng
+- mitigation chung chung
+
+ CHỈ TRẢ JSON:
+
+{{
+  "decision": "APPROVE/REJECT",
+  "violations": [],
+  "required_fixes": [],
+  "final_report": {{
+    "incident_summary": "...",
+    "technical_analysis": "...",
+    "response_steps": []
+  }},
+  "confidence": "LOW/MEDIUM/HIGH"
+}}
+"""
+
+    res = model.invoke(prompt).content
+
+    print("\n[DEBUG AUDITOR RAW OUTPUT]:\n", res)
+
+    try:
+        clean_res = clean_json(res)
+        data = json.loads(clean_res)
+    except Exception as e:
+        print("[ERROR PARSE]:", e)
+        data = {
+            "decision": "REJECT",
+            "violations": ["parse_error"],
+            "required_fixes": ["invalid JSON"],
+            "final_report": {},
+            "confidence": "LOW"
         }
-    else:
-        return {
-            "feedback": res, 
-            "iterations": iterations + 1,
-            "draft_report": draft
-        }
+
+    report = data.get("final_report", {})
+    steps = report.get("response_steps", [])
+
+    if is_invalid_content(report):
+        data["decision"] = "REJECT"
+        data["violations"].append("invalid_content")
+        data["required_fixes"].append("fix empty or placeholder content")
+
+    if len(steps) < 2:
+        data["decision"] = "REJECT"
+        data["violations"].append("not_enough_mitigation")
+
+    if has_duplicate_steps(steps):
+        data["decision"] = "REJECT"
+        data["violations"].append("duplicate_mitigation")
+
+    if has_generic_steps(steps):
+        data["decision"] = "REJECT"
+        data["violations"].append("generic_mitigation")
+        data["required_fixes"].append("use specific mitigation steps")
+
+    return {
+        "audit_result": data,
+        "final_report": data.get("final_report", {}),
+        "feedback": data.get("required_fixes", []),
+        "iterations": iterations + 1
+    }

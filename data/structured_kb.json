@@ -1,0 +1,232 @@
+[
+  {
+    "malware": "ransomware",
+    "symptoms": [
+      "files are encrypted",
+      "ransom note displayed",
+      "unusual CPU spike"
+    ],
+    "infection_vector": [
+      "phishing email",
+      "exploit kits",
+      "remote desktop brute force"
+    ],
+    "mitigation": [
+      "disconnect network immediately",
+      "isolate infected host",
+      "restore from clean backup",
+      "disable RDP access",
+      "apply security patches"
+    ],
+    "tactics": ["execution", "persistence", "impact"],
+    "attack_pattern": "encrypt data and demand ransom",
+    "ioc": [
+      "unknown file extensions",
+      "suspicious outbound traffic",
+      "ransom note files"
+    ],
+    "severity": "critical"
+  },
+  {
+    "malware": "trojan",
+    "symptoms": [
+      "unauthorized remote access",
+      "unexpected background processes"
+    ],
+    "infection_vector": [
+      "fake software installers",
+      "email attachments"
+    ],
+    "mitigation": [
+      "remove malicious software",
+      "scan with antivirus",
+      "block C2 communication"
+    ],
+    "tactics": ["initial_access", "command_and_control"],
+    "attack_pattern": "disguised malicious software",
+    "ioc": [
+      "unknown executable files",
+      "suspicious IP connections"
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "worm",
+    "symptoms": [
+      "rapid spread across network",
+      "high bandwidth usage"
+    ],
+    "infection_vector": [
+      "network vulnerabilities",
+      "open ports"
+    ],
+    "mitigation": [
+      "disconnect infected systems",
+      "patch vulnerabilities",
+      "segment network"
+    ],
+    "tactics": ["lateral_movement", "propagation"],
+    "attack_pattern": "self-replication across systems",
+    "ioc": [
+      "multiple connection attempts",
+      "network scanning activity"
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "spyware",
+    "symptoms": [
+      "data exfiltration",
+      "browser hijacking"
+    ],
+    "infection_vector": [
+      "bundled software",
+      "malicious websites"
+    ],
+    "mitigation": [
+      "remove spyware tools",
+      "clear browser data",
+      "block tracking domains"
+    ],
+    "tactics": ["collection", "exfiltration"],
+    "attack_pattern": "monitor and steal user data",
+    "ioc": [
+      "unknown browser extensions",
+      "data sent to unknown servers"
+    ],
+    "severity": "medium"
+  },
+  {
+    "malware": "keylogger",
+    "symptoms": [
+      "credential theft",
+      "slow system performance"
+    ],
+    "infection_vector": [
+      "malicious downloads",
+      "USB devices"
+    ],
+    "mitigation": [
+      "change passwords",
+      "remove malicious programs",
+      "enable MFA"
+    ],
+    "tactics": ["credential_access"],
+    "attack_pattern": "capture keystrokes",
+    "ioc": [
+      "suspicious background services"
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "rootkit",
+    "symptoms": [
+      "hidden processes",
+      "system instability"
+    ],
+    "infection_vector": [
+      "privilege escalation exploits",
+      "malicious drivers"
+    ],
+    "mitigation": [
+      "reinstall operating system",
+      "scan with rootkit detection tools"
+    ],
+    "tactics": ["defense_evasion", "persistence"],
+    "attack_pattern": "hide malicious activity deeply in OS",
+    "ioc": [
+      "modified system files",
+      "hidden kernel modules"
+    ],
+    "severity": "critical"
+  },
+  {
+    "malware": "botnet",
+    "symptoms": [
+      "device controlled remotely",
+      "high outbound traffic"
+    ],
+    "infection_vector": [
+      "phishing",
+      "malware downloads"
+    ],
+    "mitigation": [
+      "disconnect infected device",
+      "block command-and-control servers",
+      "update firmware"
+    ],
+    "tactics": ["command_and_control"],
+    "attack_pattern": "remote control of infected machines",
+    "ioc": [
+      "connections to known C2 servers"
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "adware",
+    "symptoms": [
+      "excessive ads",
+      "browser slowdown"
+    ],
+    "infection_vector": [
+      "bundled apps",
+      "freeware"
+    ],
+    "mitigation": [
+      "remove unwanted programs",
+      "reset browser settings"
+    ],
+    "tactics": ["impact"],
+    "attack_pattern": "display intrusive ads",
+    "ioc": [
+      "unknown extensions"
+    ],
+    "severity": "low"
+  },
+  {
+    "malware": "fileless malware",
+    "symptoms": [
+      "no files on disk",
+      "abnormal memory activity"
+    ],
+    "infection_vector": [
+      "phishing",
+      "exploit kits"
+    ],
+    "mitigation": [
+      "monitor memory behavior",
+      "use EDR tools",
+      "disable macros"
+    ],
+    "tactics": ["execution", "defense_evasion"],
+    "attack_pattern": "execute in memory only",
+    "ioc": [
+      "powershell abuse",
+      "suspicious memory processes"
+    ],
+    "severity": "critical"
+  },
+  {
+    "malware": "backdoor",
+    "symptoms": [
+      "unauthorized access",
+      "unknown open ports"
+    ],
+    "infection_vector": [
+      "trojan",
+      "exploits"
+    ],
+    "mitigation": [
+      "close open ports",
+      "remove backdoor",
+      "reset credentials"
+    ],
+    "tactics": ["persistence", "command_and_control"],
+    "attack_pattern": "bypass authentication",
+    "ioc": [
+      "unexpected open ports",
+      "remote login attempts"
+    ],
+    "severity": "high"
+  }
+]
