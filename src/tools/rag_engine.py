@@ -8,9 +8,15 @@ DB_PATH = "faiss_index"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_PATH = os.path.join(BASE_DIR, "data", "structured_kb.json")
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+_embeddings = None
+
+def get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+    return _embeddings
 
 
 def build_db():
@@ -44,6 +50,7 @@ def build_db():
     if not docs:
         raise ValueError(" No documents loaded from structured_kb.json")
 
+    embeddings = get_embeddings()
     db = FAISS.from_documents(docs, embeddings)
     db.save_local(DB_PATH)
 
@@ -54,6 +61,7 @@ def build_db():
 def load_db():
     if os.path.exists(DB_PATH):
         print(" Loading FAISS index...")
+        embeddings = get_embeddings()
         return FAISS.load_local(DB_PATH, embeddings, allow_dangerous_deserialization=True)
     else:
         print(" Building FAISS index...")

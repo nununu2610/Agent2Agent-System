@@ -5,130 +5,178 @@ import time
 import json
 import re
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 
-
+# Thiết lập đường dẫn hệ thống
 load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.agents.analyst import analyst_node
-from src.agents.auditor import auditor_node
-from src.agents.judge import judge_node
+# IMPORT LUỒNG GRAPH CHÍNH (Thay vì import từng worker lẻ)
+try:
+    from src.main import app
+except ImportError:
+    st.error("Không thể tìm thấy 'app' trong src.main. Hãy đảm bảo bạn đã compile graph bằng 'app = workflow.compile()'")
 
 def extract_json_safe(text):
-    if not text or not isinstance(text, str):
-        return None, text
+    """Trích xuất JSON an toàn từ phản hồi của LLM."""
+    if not text:
+        return None, ""
+    if isinstance(text, dict):
+        return text, ""
+    
     text = re.sub(r"```json|```", "", text).strip()
     try:
         match = re.search(r"(\{.*\})", text, re.DOTALL)
         if match:
             json_str = match.group(1)
+            # Sửa lỗi JSON thiếu dấu phẩy giữa các thuộc tính (nếu có)
             json_str = re.sub(r'(")\s*\n\s*(")', r'\1,\n\2', json_str)
             return json.loads(json_str), None
         return None, text
     except:
         return None, text
 
-st.set_page_config(page_title="Cyborg Malware Intelligence", layout="wide")
+# === CẤU HÌNH GIAO DIỆN ===
+st.set_page_config(page_title="Cyborg Malware Intelligence", layout="wide", page_icon="🤖")
 
 st.markdown("""
     <style>
-    .report-card { background-color: #ffffff; padding: 25px; border-radius: 15px; border-left: 8px solid #007bff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    .step-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+    .report-card { background-color: #ffffff; padding: 25px; border-radius: 15px; border-left: 8px solid #007bff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #1e1e1e; }
+    .step-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 10px; margin-bottom: 10px; color: #333; }
+    .status-text { font-size: 0.9em; color: #666; font-style: italic; }
     </style>
 """, unsafe_allow_html=True)
 
 def main():
-    st.title("AI Malware Intelligence Dashboard")
+    st.title(" AI Malware Intelligence Dashboard")
+    st.markdown("Hệ thống phân tích mã độc đa tác tử (Orchestrator-Worker Architecture)")
     
     with st.sidebar:
-        st.header("⚙️ Setting")
-        mode = st.radio("Chế độ:", ["Phân tích chuyên sâu", "Hỏi đáp nhanh"])
-        max_retries = st.slider("Số lần tối ưu", 1, 5, 2)
+        st.header("Cấu hình hệ thống")
+        mode = st.radio("Chế độ vận hành:", ["Phân tích chuyên sâu (Multi-Agent)", "Tra cứu nhanh (Single LLM)"])
 
-    user_query = st.text_input("🤖 Tên Malware cần phân tích:", placeholder="Ví dụ: LockBit, WannaCry, Dharma...")
 
-    if st.button("Thực thi quy trình", type="primary"):
-        if not user_query: return
+    user_query = st.text_input("🤖 Nhập tên hoặc hành vi Malware:", placeholder="Ví dụ: Phân tích mã độc LockBit...")
 
-        if mode == "Hỏi đáp nhanh":
-            with st.spinner("Đang suy nghĩ..."):
+    if st.button("BẮT ĐẦU PHÂN TÍCH", type="primary"):
+        if not user_query:
+            st.warning("Vui lòng nhập nội dung cần phân tích.")
+            return
+
+        if mode == "Tra cứu nhanh (Single LLM)":
+            with st.spinner("Đang truy vấn dữ liệu..."):
+                from langchain_groq import ChatGroq
                 llm = ChatGroq(model="llama-3.1-8b-instant")
                 st.info(llm.invoke(user_query).content)
         else:
-            state = {"malware_name": user_query, "iterations": 0, "draft_report": "", "feedback": []}
+            # === KHỞI CHẠY HỆ THỐNG MULTI-AGENT ===
+            # Khởi tạo state ban đầu đúng chuẩn đầu vào của Intent Gate
+            initial_state = {
+                "raw_user_input": user_query,
+                "malware_name": user_query,
+                "iterations": 0,
+                "feedback": [],
+                "task_plan": []
+            }
             
-            with st.status("Đang chạy hệ thống Agent...", expanded=True) as status:
-                while state["iterations"] < max_retries:
-                    it = state["iterations"] + 1
-                    st.write(f"**Round {it}:** Đang phân tích & kiểm duyệt...")
+            final_state = {}
+            
+            with st.status(" Đang khởi động ...", expanded=True) as status:
+                # Chạy Graph theo dạng Stream để cập nhật UI từng bước
+                try:
+                    for output in app.stream(initial_state):
+                        for node_name, node_state in output.items():
+                            final_state.update(node_state)
+                            
+                            if node_name == "intent_gate":
+                                if node_state.get("intent_valid"):
+                                    st.write(" **Intent Gate:** Input hợp lệ. Đã tạo dấu vân tay định danh.")
+                                else:
+                                    st.error(f" **Intent Gate:** Chặn truy cập! Lý do: {node_state.get('intent_reason')}")
+                                    status.update(label="Bị chặn bởi tường lửa bảo mật", state="error")
+                                    st.stop()
+                            
+                            elif node_name == "orchestrator":
+                                tasks = node_state.get("task_plan", [])
+                                st.write(f" **Orchestrator:** Đã lập kế hoạch phân rã thành {len(tasks)} nhiệm vụ.")
+                            
+                            elif node_name in ["rag_worker", "search_worker"]:
+                                st.write(f" **Data Worker:** Đang thu thập dữ liệu từ {node_name.replace('_', ' ')}...")
+                            
+                            elif node_name == "analyst_worker":
+                                st.write(" **Analyst:** Đang tổng hợp báo cáo kỹ thuật...")
+                            
+                            elif node_name == "auditor_worker":
+                                st.write(" **Auditor:** Đang kiểm duyệt nội dung và đối soát rủi ro...")
+                                
+                            elif node_name == "judge_worker":
+                                decision = node_state.get("judge_result", {}).get("final_decision", "PENDING")
+                                if decision == "APPROVE":
+                                    st.write(" **Judge:** Báo cáo đã được phê duyệt!")
+                                else:
+                                    st.write(f" **Judge:** Yêu cầu tối ưu lại (Vòng {final_state.get('iterations', 0)})...")
                     
-                    state.update(analyst_node(state))
-                    time.sleep(2) 
-                    state.update(auditor_node(state))
-                    time.sleep(2)
-                    judge_res = judge_node(state)
-                    decision = judge_res["judge_result"]
-                    
-                    if decision["final_decision"] == "APPROVE":
-                        status.update(label="Đã xác minh thành công!", state="complete")
-                        break
-                    else:
-                        state["iterations"] += 1
-                        state["feedback"] = state["audit_result"].get("required_fixes", [])
+                    status.update(label="Quy trình hoàn tất!", state="complete")
+                except Exception as e:
+                    st.error(f"Lỗi hệ thống: {str(e)}")
+                    st.stop()
 
-            draft_json, draft_text = extract_json_safe(state.get("draft_report", ""))
+            evaluator_res = final_state.get("evaluator_result", {})
+            is_approved = evaluator_res.get("final_decision") == "APPROVE"
+            
+            report_source = final_state.get("final_report") if is_approved else final_state.get("draft_report")
+            final_json, _ = extract_json_safe(report_source)
 
-            if decision["final_decision"] == "APPROVE":
+            if is_approved:
                 st.balloons()
-                st.success("BÁO CÁO ĐÃ ĐƯỢC PHÊ DUYỆT")
-                final = state.get("final_report", draft_json)
+                st.success("BÁO CÁO CHIẾN LƯỢC ĐÃ ĐƯỢC XÁC MINH")
             else:
-                st.error(f"Bị từ chối (Round {state['iterations']}): {decision.get('reason')}")
-                st.warning("HIỂN THỊ BẢN THẢO CHƯA XÁC MINH")
-                final = draft_json
+                st.error(f"BÁO CÁO CHƯA ĐƯỢC PHÊ DUYỆT (Số vòng lặp: {final_state.get('iterations')})")
+                st.info(f"**Lý do:** {evaluator_res.get('reason', 'Không đạt tiêu chuẩn chất lượng')}")
+                
 
-            if final:
+            if final_json:
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     st.markdown("### Tóm tắt sự cố")
-                    st.markdown(f'<div class="report-card">{final.get("incident_summary")}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="report-card">{final_json.get("incident_summary", "Không có dữ liệu")}</div>', unsafe_allow_html=True)
                 
                 with col2:
-                    st.markdown("### Chi tiết kỹ thuật")
-                    tech = final.get("technical_analysis", {})
-                    if isinstance(tech, dict):
-                        st.write(f"**Vector:** {tech.get('infection_vector')}")
-                        st.write(f"**Hành vi:** {tech.get('behavior')}")
-                        st.write(f"**Tác động:** {tech.get('impact')}")
-                    else: st.write(tech)
+                    st.markdown("### Phân tích kỹ thuật")
+                    tech = final_json.get("technical_analysis", {})
+                    with st.container(border=True):
+                        if isinstance(tech, dict):
+                            st.write(f"**Vector tấn công:** {tech.get('infection_vector', 'N/A')}")
+                            st.write(f"**Hành vi:** {tech.get('behavior', 'N/A')}")
+                            st.write(f"**Tác động:** {tech.get('impact', 'N/A')}")
+                        else:
+                            st.write(tech)
 
-                st.markdown("### Quy trình ứng phó (SOC Action Plan)")
-                steps = final.get("response_steps", [])
-                                
-                if isinstance(steps, list):
+                st.markdown("---")
+                st.markdown("### Quy trình ứng phó ")
+                steps = final_json.get("response_steps", [])
+                
+                if isinstance(steps, list) and len(steps) > 0:
                     for i, s in enumerate(steps):
                         if isinstance(s, dict):
-                            step_content = s.get('description', '')
-                            sub_details = s.get('steps', [])
-                            if isinstance(sub_details, list):
-                                step_content += " " + " ".join(sub_details)
+                            phase = s.get('phase', f'GIAI ĐOẠN {i+1}')
+                            desc = s.get('description', '')
+                            sub_steps = s.get('steps', [])
+                            
+                            content = desc
+                            if sub_steps:
+                                content += "<br><ul>" + "".join([f"<li>{x}</li>" for x in sub_steps]) + "</ul>"
                         else:
-                            step_content = str(s)
+                            phase = f"GIAI ĐOẠN {i+1}"
+                            content = str(s)
 
-                        step_content = re.sub(r"^(Bước|Step)\s*\d+[:.-]*\s*", "", step_content, flags=re.IGNORECASE).strip()
-
-                        if step_content:
-                            st.markdown(f'''
-                                <div class="step-box">
-                                    <span style="color: #007bff; font-weight: bold;">GIAI ĐOẠN {i+1}:</span><br>
-                                    {step_content}
-                                </div>
-                            ''', unsafe_allow_html=True)
+                        st.markdown(f'''
+                            <div class="step-box">
+                                <span style="color: #007bff; font-weight: bold; text-transform: uppercase;">{phase}</span><br>
+                                {content}
+                            </div>
+                        ''', unsafe_allow_html=True)
                 else:
-                    st.info("Không tìm thấy các bước ứng phó theo định dạng chuẩn.")
-            else:
-                st.markdown(draft_text)
+                    st.info("Không có dữ liệu quy trình ứng phó chi tiết.")
 
 if __name__ == "__main__":
     main()

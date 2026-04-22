@@ -2,230 +2,239 @@
   {
     "malware": "ransomware",
     "symptoms": [
-      "files are encrypted",
-      "ransom note displayed",
-      "unusual CPU spike"
+      "Xuất hiện thông báo đòi tiền chuộc trên màn hình.",
+      "Các file tài liệu (.doc, .pdf, .jpg) bị đổi đuôi lạ và không thể mở được."
     ],
     "infection_vector": [
-      "phishing email",
-      "exploit kits",
-      "remote desktop brute force"
+      "Email Phishing, khai thác lỗ hổng RDP, hoặc đính kèm trong các bộ cài đặt phần mềm lậu."
     ],
     "mitigation": [
-      "disconnect network immediately",
-      "isolate infected host",
-      "restore from clean backup",
-      "disable RDP access",
-      "apply security patches"
-    ],
-    "tactics": ["execution", "persistence", "impact"],
-    "attack_pattern": "encrypt data and demand ransom",
-    "ioc": [
-      "unknown file extensions",
-      "suspicious outbound traffic",
-      "ransom note files"
-    ],
-    "severity": "critical"
-  },
-  {
-    "malware": "trojan",
-    "symptoms": [
-      "unauthorized remote access",
-      "unexpected background processes"
-    ],
-    "infection_vector": [
-      "fake software installers",
-      "email attachments"
-    ],
-    "mitigation": [
-      "remove malicious software",
-      "scan with antivirus",
-      "block C2 communication"
-    ],
-    "tactics": ["initial_access", "command_and_control"],
-    "attack_pattern": "disguised malicious software",
-    "ioc": [
-      "unknown executable files",
-      "suspicious IP connections"
+      "Lập tức ngắt kết nối mạng vật lý (rút cáp mạng, tắt Wi-Fi).",
+      "Tuyệt đối không tắt nguồn hoặc khởi động lại máy tính để giữ nguyên trạng thái RAM phục vụ điều tra khóa giải mã.",
+      "Báo cáo khẩn cấp cho đội ứng cứu sự cố."
     ],
     "severity": "high"
   },
   {
-    "malware": "worm",
+    "malware": "fileless malware",
     "symptoms": [
-      "rapid spread across network",
-      "high bandwidth usage"
+      "Không tìm thấy file lạ trên ổ cứng nhưng RAM và CPU luôn ở mức cao.",
+      "Có các tiến trình PowerShell hoặc WMI chạy ngầm bất thường."
     ],
     "infection_vector": [
-      "network vulnerabilities",
-      "open ports"
+      "Lợi dụng các công cụ có sẵn của hệ điều hành như PowerShell, WMI hoặc Macros trong Office."
     ],
     "mitigation": [
-      "disconnect infected systems",
-      "patch vulnerabilities",
-      "segment network"
-    ],
-    "tactics": ["lateral_movement", "propagation"],
-    "attack_pattern": "self-replication across systems",
-    "ioc": [
-      "multiple connection attempts",
-      "network scanning activity"
+      "Thu thập ngay bản dump của bộ nhớ RAM để phân tích.",
+      "Trích xuất nhật ký sự kiện (Event Logs) của PowerShell để tìm mã độc.",
+      "Không được phép tắt máy để tránh mất dữ liệu thực thi trên RAM."
     ],
     "severity": "high"
   },
   {
-    "malware": "spyware",
+    "malware": "autohacker",
     "symptoms": [
-      "data exfiltration",
-      "browser hijacking"
+      "Hình nền máy tính bị thay đổi trái phép.",
+      "Hệ thống tự động mở các kết nối Reverse Shell ra bên ngoài."
     ],
     "infection_vector": [
-      "bundled software",
-      "malicious websites"
+      "Khai thác lỗ hổng bảo mật trên Web Server (thường là mã độc viết bằng C#)."
     ],
     "mitigation": [
-      "remove spyware tools",
-      "clear browser data",
-      "block tracking domains"
+      "Sử dụng Wireshark để bắt gói tin mạng, phân tích địa chỉ IP đích của C&C Server.",
+      "Cập nhật rule chặn IP C&C này trên tường lửa (Firewall).",
+      "Gỡ bỏ mã độc trên máy trạm và gửi báo cáo mẫu vật về phòng lab E8.1."
     ],
-    "tactics": ["collection", "exfiltration"],
-    "attack_pattern": "monitor and steal user data",
-    "ioc": [
-      "unknown browser extensions",
-      "data sent to unknown servers"
-    ],
-    "severity": "medium"
+    "severity": "high"
   },
   {
     "malware": "keylogger",
     "symptoms": [
-      "credential theft",
-      "slow system performance"
+      "Gõ phím bị trễ (lag), các tài khoản cá nhân bị đăng nhập trái phép."
     ],
     "infection_vector": [
-      "malicious downloads",
-      "USB devices"
+      "Đính kèm trong các phần mềm miễn phí không rõ nguồn gốc hoặc qua các trang web độc hại."
     ],
     "mitigation": [
-      "change passwords",
-      "remove malicious programs",
-      "enable MFA"
+      "Kiểm tra các tiến trình chạy ngầm bất thường trong Task Manager.",
+      "Thay đổi ngay lập tức toàn bộ mật khẩu của các tài khoản từ một thiết bị an toàn khác.",
+      "Kích hoạt xác thực hai yếu tố (2FA) cho tất cả các tài khoản quan trọng."
     ],
-    "tactics": ["credential_access"],
-    "attack_pattern": "capture keystrokes",
-    "ioc": [
-      "suspicious background services"
+    "severity": "high"
+  },
+  {
+    "malware": "remote access trojan (rat) / backdoor",
+    "symptoms": [
+      "Máy tính tự hoạt động (chuột tự di chuyển, camera tự bật).",
+      "Có các cổng (port) lạ đang ở trạng thái Listening hoặc Established."
+    ],
+    "infection_vector": [
+      "Payload từ Metasploit, trojan đính kèm trong file văn bản hoặc phần mềm bẻ khóa."
+    ],
+    "mitigation": [
+      "Rà soát các cổng (port) đang mở bất thường trên hệ thống.",
+      "Xác định địa chỉ C2 IP và thiết lập Rule Block toàn bộ lưu lượng đến IP đó trên tường lửa pfSense.",
+      "Rà soát các khóa Registry để tìm và xóa cơ chế kiên trì (persistence) của mã độc."
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "wiper malware",
+    "symptoms": [
+      "Máy tính bị lỗi màn hình xanh liên tục.",
+      "Hệ điều hành báo lỗi không tìm thấy ổ đĩa boot (MBR/MFT bị hỏng)."
+    ],
+    "infection_vector": [
+      "Tấn công có chủ đích (APT) nhằm phá hoại hạ tầng quốc gia hoặc doanh nghiệp."
+    ],
+    "mitigation": [
+      "Cô lập máy trạm khỏi mạng nội bộ ngay lập tức.",
+      "Không cố gắng khôi phục dữ liệu trên ổ đĩa gốc để tránh hỏng hóc nặng hơn.",
+      "Thực hiện phương án khôi phục hệ thống từ các bản sao lưu (Backup) offline."
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "brute force botnet",
+    "symptoms": [
+      "Lưu lượng mạng gửi đi tăng đột biến.",
+      "Log hệ thống ghi nhận hàng nghìn yêu cầu đăng nhập thất bại từ máy tính này đến máy khác."
+    ],
+    "infection_vector": [
+      "Máy tính bị nhiễm malware biến thành zombie tham gia mạng lưới botnet."
+    ],
+    "mitigation": [
+      "Phân tích log đăng nhập để tìm dải IP đang bị tấn công.",
+      "Cấu hình tường lửa pfSense để rate-limit hoặc ban vĩnh viễn các IP có hành vi Brute Force.",
+      "Áp dụng chính sách khóa tài khoản (Account Lockout Policy) sau 5 lần nhập sai mật khẩu."
     ],
     "severity": "high"
   },
   {
     "malware": "rootkit",
     "symptoms": [
-      "hidden processes",
-      "system instability"
+      "Các tiến trình độc hại không hiển thị trong Task Manager.",
+      "Các file độc hại bị ẩn hoàn toàn ngay cả khi bật 'Show hidden files'."
     ],
     "infection_vector": [
-      "privilege escalation exploits",
-      "malicious drivers"
+      "Khai thác lỗ hổng sâu trong nhân hệ điều hành (Kernel)."
     ],
     "mitigation": [
-      "reinstall operating system",
-      "scan with rootkit detection tools"
-    ],
-    "tactics": ["defense_evasion", "persistence"],
-    "attack_pattern": "hide malicious activity deeply in OS",
-    "ioc": [
-      "modified system files",
-      "hidden kernel modules"
-    ],
-    "severity": "critical"
-  },
-  {
-    "malware": "botnet",
-    "symptoms": [
-      "device controlled remotely",
-      "high outbound traffic"
-    ],
-    "infection_vector": [
-      "phishing",
-      "malware downloads"
-    ],
-    "mitigation": [
-      "disconnect infected device",
-      "block command-and-control servers",
-      "update firmware"
-    ],
-    "tactics": ["command_and_control"],
-    "attack_pattern": "remote control of infected machines",
-    "ioc": [
-      "connections to known C2 servers"
+      "Boot máy tính từ một môi trường an toàn (Live USB Kali Linux hoặc WinPE) để quét ổ đĩa ngoại tuyến.",
+      "Không tin tưởng vào kết quả quét từ hệ điều hành đang chạy.",
+      "Cài đặt lại toàn bộ hệ điều hành (Wipe & Rebuild) để đảm bảo sạch mã độc."
     ],
     "severity": "high"
   },
   {
-    "malware": "adware",
+    "malware": "infostealer",
     "symptoms": [
-      "excessive ads",
-      "browser slowdown"
+      "Các tài khoản mạng xã hội, ngân hàng bị chiếm quyền dù có mật khẩu mạnh.",
+      "Trình duyệt web tự động thoát hoặc cài đặt thêm các Extension lạ."
     ],
     "infection_vector": [
-      "bundled apps",
-      "freeware"
+      "Lừa đảo qua mạng (Social Engineering), quảng cáo độc hại (Malvertising)."
     ],
     "mitigation": [
-      "remove unwanted programs",
-      "reset browser settings"
+      "Thu hồi ngay lập tức toàn bộ token phiên đăng nhập (Session Tokens).",
+      "Giám sát lưu lượng mạng qua các giao thức HTTP/FTP hoặc Telegram API để tìm dữ liệu bị rò rỉ.",
+      "Xóa toàn bộ Cookie và dữ liệu đã lưu trên các trình duyệt web."
     ],
-    "tactics": ["impact"],
-    "attack_pattern": "display intrusive ads",
-    "ioc": [
-      "unknown extensions"
-    ],
-    "severity": "low"
+    "severity": "high"
   },
   {
-    "malware": "fileless malware",
+    "malware": "emotet",
     "symptoms": [
-      "no files on disk",
-      "abnormal memory activity"
+      "Email rác gửi đi hàng loạt từ hòm thư của người dùng.",
+      "Xuất hiện các dịch vụ (Services) lạ có tên ngẫu nhiên trong hệ thống."
     ],
     "infection_vector": [
-      "phishing",
-      "exploit kits"
+      "Email Phishing chứa các file đính kèm có mã Macro độc hại (.docm, .xlsm)."
     ],
     "mitigation": [
-      "monitor memory behavior",
-      "use EDR tools",
-      "disable macros"
+      "Chặn các email có file đính kèm chứa mã Macro từ cổng Mail Gateway.",
+      "Sử dụng lệnh 'Get-Service' trong PowerShell để tìm và dừng các service lạ.",
+      "Cô lập các máy tính bị nhiễm để tránh lây lan trong mạng LAN."
     ],
-    "tactics": ["execution", "defense_evasion"],
-    "attack_pattern": "execute in memory only",
-    "ioc": [
-      "powershell abuse",
-      "suspicious memory processes"
-    ],
-    "severity": "critical"
+    "severity": "high"
   },
   {
-    "malware": "backdoor",
+    "malware": "cobalt strike (beacon)",
     "symptoms": [
-      "unauthorized access",
-      "unknown open ports"
+      "Kết nối HTTPS liên tục đến các địa chỉ IP lạ với chu kỳ đều đặn (Beaconing).",
+      "Xuất hiện các tiến trình lạ hoặc tiến trình hệ thống (như svchost.exe) bị inject mã lạ."
     ],
     "infection_vector": [
-      "trojan",
-      "exploits"
+      "Công cụ tấn công chuyên nghiệp dùng trong các chiến dịch Red Team hoặc APT."
     ],
     "mitigation": [
-      "close open ports",
-      "remove backdoor",
-      "reset credentials"
+      "Sử dụng lệnh 'netstat -ano' để xác định PID đang kết nối đến IP lạ.",
+      "Chạy lệnh 'taskkill /F /IM [tên_tiến_trình]' để tiêu diệt Beacon.",
+      "Xóa các tác vụ lập lịch đáng ngờ sử dụng lệnh 'schtasks /delete'."
     ],
-    "tactics": ["persistence", "command_and_control"],
-    "attack_pattern": "bypass authentication",
-    "ioc": [
-      "unexpected open ports",
-      "remote login attempts"
+    "severity": "high"
+  },
+  {
+    "malware": "pegasus",
+    "symptoms": [
+      "Pin điện thoại sụt nhanh, thiết bị nóng bất thường ngay cả khi không dùng.",
+      "Có lưu lượng dữ liệu mã hóa gửi đi vào ban đêm."
+    ],
+    "infection_vector": [
+      "Tấn công không cần tương tác (Zero-click) qua lỗ hổng ứng dụng nhắn tin (iMessage, WhatsApp)."
+    ],
+    "mitigation": [
+      "Thu thập và phân tích nhật ký hệ thống (Syslog) chuyên sâu.",
+      "Kiểm tra và chặn các kết nối HTTPS đến dải IP thuộc hạ tầng của NSO Group.",
+      "Thực hiện format hoàn toàn và cài đặt lại Firmware (Re-flash Firmware) cho thiết bị."
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "hydra (ai-poisoning)",
+    "symptoms": [
+      "Hệ thống AI trả lời sai lệch, bỏ qua các bước kiểm tra an ninh thông thường.",
+      "Xuất hiện các chuỗi lệnh lạ như 'IGNORE_SECURITY_CHECK' trong log của AI."
+    ],
+    "infection_vector": [
+      "Thao túng dữ liệu huấn luyện hoặc tiêm nhiễm mã độc vào luồng xử lý của Agent."
+    ],
+    "mitigation": [
+      "Ngay lập tức cô lập môi trường thực thi của AI (Sandbox isolation).",
+      "Chạy lệnh 'echo THREAT_DETECTED' trong hệ thống giám sát để đánh dấu vi phạm.",
+      "Rà soát lại toàn bộ Prompt Injection history để tìm lỗ hổng."
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "mirai botnet",
+    "symptoms": [
+      "Các thiết bị IoT (Camera, Router) hoạt động chậm hoặc không thể truy cập.",
+      "Thiết bị tham gia các cuộc tấn công DDoS quy mô lớn."
+    ],
+    "infection_vector": [
+      "Dò quét và tấn công các thiết bị IoT sử dụng mật khẩu mặc định qua Telnet/SSH."
+    ],
+    "mitigation": [
+      "Đổi mật khẩu mặc định của thiết bị bằng lệnh 'passwd' ngay lập tức.",
+      "Chặn các cổng dịch vụ không an toàn như 23 (Telnet) và 2323 trên tường lửa router.",
+      "Cập nhật bản vá phần cứng (Firmware) mới nhất từ nhà sản xuất."
+    ],
+    "severity": "high"
+  },
+  {
+    "malware": "wannacry",
+    "symptoms": [
+      "Màn hình bị khóa bởi thông báo đòi tiền chuộc bằng Bitcoin.",
+      "Mã độc lây lan cực nhanh sang các máy tính khác trong cùng mạng LAN."
+    ],
+    "infection_vector": [
+      "Khai thác lỗ hổng EternalBlue (SMBv1) trên các hệ điều hành Windows chưa vá lỗi."
+    ],
+    "mitigation": [
+      "Chặn cổng 445 (SMB) trên toàn bộ hệ thống tường lửa ngay lập tức.",
+      "Cài đặt khẩn cấp bản vá bảo mật MS17-010 của Microsoft.",
+      "Sử dụng lệnh 'set-service lanmanserver -startuptype disabled' để tạm dừng dịch vụ chia sẻ file."
     ],
     "severity": "high"
   }

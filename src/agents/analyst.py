@@ -1,66 +1,136 @@
+"""
+Analyst Worker
+==============
+Trong kiến trúc mới:
+  - Không khởi tạo web search hay RAG riêng
+  - Nhận context đã được thu thập bởi Data Workers
+  - Chỉ nhận task qua TaskSpec từ Orchestrator (đã sanitize)
+  - Verify intent_fingerprint trước khi generate report
+
+So với pipeline cũ:
+  - Pipeline: analyst nhận raw malware_name từ state → dễ inject
+  - Star: analyst nhận task.instruction (Orchestrator đã wrap) + pre-fetched context
+"""
+
 import os
 import re
+import json
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
-from src.tools.search_tool import get_web_search
-from src.tools.rag_engine import load_db, query_rag
 from src.state import AgentState
 
+load_dotenv()
+
+ANALYST_SYSTEM_PROMPT = """You are a Level 3 SOC Malware Expert. 
+STRICT RULES:
+1. INTERNAL KEYS MUST BE ENGLISH: 'incident_summary', 'technical_analysis', 'infection_vector', 'behavior', 'impact', 'response_steps', 'phase', 'description', 'steps'.
+2. VALUES MUST BE VIETNAMESE: All descriptions and analysis must be in detailed Vietnamese.
+3. NO GENERIC STEPS: Do not use 'quét virus', 'xóa file'. Use 'Block C2 IP', 'Isolate PID', etc.
+4. MINIMUM LENGTH: 'behavior' must be at least 150 words.
+"""
+
 llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.1, 
+    model="llama-3.3-70b-versatile",
+    temperature=0.1,
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-search_tool = get_web_search()
-db = load_db()
 
-def analyst_node(state: AgentState):
-    malware = state["malware_name"]
-    feedback = state.get("feedback", [])
-    
-    query = f"{malware} malware technical analysis behavior mitigation"
-    web_data = search_tool.invoke(query)
-    
-    rag_docs = query_rag(db, malware, "mitigation")
-    rag_context = "\n".join([d.page_content for d in rag_docs]) if rag_docs else ""
-    feedback_text = "\n".join(feedback) if feedback else "None"
+def find_task(task_plan: list, worker_name: str) -> dict:
+    for task in task_plan:
+        if task.get("worker") == worker_name:
+            return task
+    return {}
 
+
+def analyst_worker_node(state: dict) -> dict:
+    """
+    LangGraph node: Analyst Worker.
+    
+    Key security difference vs old pipeline:
+    - Reads task instruction from Orchestrator's TaskSpec
+    - Uses pre-fetched rag_context and web_context (không tự fetch)
+    - Verifies intent_fingerprint
+    """
+    task_plan = state.get("task_plan", [])
+    fingerprint = state.get("intent_fingerprint", "")
+
+    task = find_task(task_plan, "analyst")
+    if not task:
+        return {"draft_report": {}, "feedback": []}
+
+    # Verify fingerprint
+    task_fp = task.get("context", {}).get("intent_fingerprint", "")
+    if task_fp != fingerprint:
+        print("[ANALYST] ⚠️  Fingerprint mismatch — refusing")
+        return {"draft_report": {}, "feedback": ["analyst_refused_fingerprint_mismatch"]}
+
+    malware_name = task["context"]["malware_name"]
+    feedback = task["context"].get("feedback", [])
+    rag_context = state.get("rag_context", "")
+    web_context = state.get("web_context", "")
+    feedback_text = "; ".join([str(f) for f in feedback]) if feedback else "None"
+
+    print(f"\n[ANALYST WORKER] Generating report for: {malware_name}")
+
+    # Note: malware_name đã được sanitize bởi Intent Gate + Orchestrator
+    # Context (rag/web) được cung cấp bởi Data Workers, không từ user
     prompt = f"""
-ROLE: Senior Malware Analyst (SOC Level 3).
-TASK: Viết báo cáo phân tích kỹ thuật chuyên sâu cho {malware}.
+PHÂN TÍCH MÃ ĐỘC: {malware_name}
 
-DATA SOURCE:
-[WEB]: {web_data}
-[INTERNAL]: {rag_context}
-[FIX REQUESTS]: {feedback_text}
+DỮ LIỆU THU THẬP:
+- RAG: {state.get('rag_context', '')[:800]}
+- WEB: {state.get('web_context', '')[:1000]}
 
-YÊU CẦU NGHIÊM NGẶT:
-- KHÔNG lặp lại bất kỳ câu lệnh nào trong Prompt này.
-- KHÔNG sử dụng các từ chung chung như "quét virus", "cập nhật máy".
-- PHẢI sử dụng thuật ngữ chuyên môn
-- MỤC response_steps: Phải là các hành động kỹ thuật cụ thể 
+PHẢN HỒI CẦN SỬA (LÝ DO BỊ REJECT VÒNG TRƯỚC):
+{feedback_text[:500]}
 
-OUTPUT FORMAT (DUY NHẤT JSON, KHÔNG TEXT NGOÀI):
+YÊU CẦU CHI TIẾT:
+- Viết báo cáo bằng TIẾNG VIỆT chuyên sâu.
+- Giữ nguyên các KEY JSON bằng TIẾNG ANH (không được dịch key).
+- Đưa ra ít nhất 4 bước phản ứng SOC cụ thể (VD: Chặn hash, cô lập cổng, xóa registry cụ thể).
+
+BẮT BUỘC TRẢ VỀ THEO CẤU TRÚC JSON NÀY:
 {{
-  "incident_summary": "Viết tối thiểu 4 câu mô tả sâu về nguồn gốc và độ nguy hiểm.",
+  "incident_summary": "Viết ít nhất 4 câu tiếng Việt tại đây...",
   "technical_analysis": {{
-    "infection_vector": "Mô tả chi tiết cách xâm nhập.",
-    "behavior": "Viết ít nhất 200 chữ về hành vi mã hóa, các file tạo ra, và tiến trình hệ thống bị can thiệp.",
-    "impact": "Tác động đến hạ tầng mạng và dữ liệu doanh nghiệp."
+    "infection_vector": "Chi tiết vector...",
+    "behavior": "Phân tích hành vi > 150 từ...",
+    "impact": "Tác động..."
   }},
   "response_steps": [
-  Đưa ra ít nhất 4 bước trong quy trình ứng phó với loại mã độc đó, dựa trên dữ liệu web và nội bộ.
-
+    {{
+      "phase": "Containment",
+      "description": "Hành động 1...",
+      "steps": ["Bước nhỏ 1", "Bước nhỏ 2"]
+    }},
+    {{
+      "phase": "Eradication",
+      "description": "Hành động 2...",
+      "steps": ["Bước nhỏ 1"]
+    }}
   ]
 }}
 """
 
-    res = llm.invoke(prompt).content
-    
-    match = re.search(r"(\{.*\})", res, re.DOTALL)
-    clean_json = match.group(1) if match else res
+    res = llm.invoke([
+        {"role": "system", "content": ANALYST_SYSTEM_PROMPT},
+        {"role": "user", "content": prompt}
+    ]).content
+
+    try:
+        # Làm sạch và parse JSON
+        match = re.search(r"(\{.*\})", res, re.DOTALL)
+        clean_str = match.group(1) if match else res
+        draft_dict = json.loads(clean_str)
+        
+        # Kiểm tra nếu LLM lỡ dịch Key thì ta gán lại Key chuẩn (Bảo hiểm)
+        # (Bạn có thể thêm logic map key ở đây nếu cần)
+        
+    except:
+        draft_dict = {"incident_summary": "Lỗi định dạng báo cáo", "technical_analysis": {"behavior": res}}
 
     return {
-        "draft_report": clean_json,
-        "feedback": ""
+        "draft_report": draft_dict,
+        "feedback": []
     }
