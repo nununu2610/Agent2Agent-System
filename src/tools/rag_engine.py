@@ -53,10 +53,10 @@ def build_db():
 
 def load_db():
     if os.path.exists(DB_PATH):
-        print("📦 Loading FAISS index...")
+        print(" Loading FAISS index...")
         return FAISS.load_local(DB_PATH, embeddings, allow_dangerous_deserialization=True)
     else:
-        print("⚙️ Building FAISS index...")
+        print(" Building FAISS index...")
         return build_db()
 
 

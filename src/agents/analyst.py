@@ -37,22 +37,20 @@ DATA SOURCE:
 YÊU CẦU NGHIÊM NGẶT:
 - KHÔNG lặp lại bất kỳ câu lệnh nào trong Prompt này.
 - KHÔNG sử dụng các từ chung chung như "quét virus", "cập nhật máy".
-- PHẢI sử dụng thuật ngữ chuyên môn: "persistence via Registry Run Keys", "API hooking", "C2 beaconing", "Lateral movement".
-- MỤC response_steps: Phải là các hành động kỹ thuật cụ thể (Isolate IP, Kill Process ID, Block Port).
+- PHẢI sử dụng thuật ngữ chuyên môn
+- MỤC response_steps: Phải là các hành động kỹ thuật cụ thể 
 
 OUTPUT FORMAT (DUY NHẤT JSON, KHÔNG TEXT NGOÀI):
 {{
   "incident_summary": "Viết tối thiểu 4 câu mô tả sâu về nguồn gốc và độ nguy hiểm.",
   "technical_analysis": {{
-    "infection_vector": "Mô tả chi tiết cách xâm nhập (ví dụ: CVE-XXXX-XXXX).",
+    "infection_vector": "Mô tả chi tiết cách xâm nhập.",
     "behavior": "Viết ít nhất 200 chữ về hành vi mã hóa, các file tạo ra, và tiến trình hệ thống bị can thiệp.",
     "impact": "Tác động đến hạ tầng mạng và dữ liệu doanh nghiệp."
   }},
   "response_steps": [
-    "Cách cô lập máy tính...",
-    "Các file/Registry cần xóa...",
-    "Cách chặn kết nối C2...",
-    "Cách khôi phục từ bản sao lưu..."
+  Đưa ra ít nhất 4 bước trong quy trình ứng phó với loại mã độc đó, dựa trên dữ liệu web và nội bộ.
+
   ]
 }}
 """
