@@ -36,6 +36,7 @@ Hệ thống hoạt động theo mô hình **Điều phối tập trung (Orchest
 git clone [https://github.com/nununu2610/Agent2Agent-System.git](https://github.com/nununu2610/Agent2Agent-System.git)
 cd Agent2Agent-System
 pip install -r requirements.txt
+```
 
 ### 2. Cấu hình biến môi trường
 Tạo file `.env` tại thư mục gốc và cấu hình API Key cùng các Model:
@@ -43,6 +44,7 @@ Tạo file `.env` tại thư mục gốc và cấu hình API Key cùng các Mode
 GROQ_API_KEY=your_groq_api_key_here
 LARGE_MODEL=llama-3.3-70b-versatile
 FAST_MODEL=llama-3.1-8b-instant
+```
 
 ### 3. Nạp dữ liệu tri thức (RAG Ingestion)
 Để hệ thống AI có thể truy xuất chính xác các quy trình xử lý nội bộ, bạn cần thực hiện các bước sau:
