@@ -66,6 +66,7 @@ FAST_MODEL=llama-3.1-8b-instant
 
 ```bash
 streamlit run gui_app.py
+```
 
 ## Quy trình sử dụng
 
